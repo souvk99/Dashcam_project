@@ -1,0 +1,24 @@
+{
+  "meta": {
+    "filename": "carrier_board.kicad_pro",
+    "version": 1
+  },
+  "schematic": {
+    "annotate_start_num": 1,
+    "drawing": {
+      "dashed_lines_dash_length_ratio": 12.0,
+      "dashed_lines_gap_length_ratio": 3.0,
+      "default_line_thickness": 0.1524,
+      "default_text_size": 1.27,
+      "field_names": [],
+      "pin_symbol_size": 0.0,
+      "text_offset_ratio": 0.2
+    }
+  },
+  "sheets": [
+    [
+      "965d9afc-0787-45ba-b7bc-21944b47b74d",
+      ""
+    ]
+  ]
+}

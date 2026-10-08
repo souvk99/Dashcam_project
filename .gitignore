@@ -1,0 +1,25 @@
+# Byte-compiled / optimized files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.venv/
+env/
+venv/
+ENV/
+
+# KiCad lock and backup files
+*.lck
+*.bak
+*-bak
+*.kicad_prl
+_autosave-*
+*.tmp
+*-save.kicad_pcb
+*-save.kicad_sch
+.history/
+
+# Operating System files
+Thumbs.db
+desktop.ini
+.DS_Store

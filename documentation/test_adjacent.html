@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Adjacent Title Block Test</title>
+    <style>
+        @page {
+            size: A4 landscape;
+            margin: 0;
+        }
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            padding: 0;
+            background: #ffffff;
+            font-family: Arial, "Helvetica Neue", Helvetica, sans-serif;
+            -webkit-print-color-adjust: exact;
+        }
+        .a4-sheet {
+            width: 297mm;
+            height: 210mm;
+            position: relative;
+            background: #ffffff;
+            padding: 8mm;
+            page-break-after: always;
+            overflow: hidden;
+        }
+        .outer-border {
+            width: 100%;
+            height: 100%;
+            border: 2px solid #000000;
+            position: relative;
+            padding: 4mm;
+        }
+        .inner-border {
+            width: 100%;
+            height: 100%;
+            border: 1px solid #000000;
+            position: relative;
+        }
+        .grid-mark {
+            position: absolute;
+            font-size: 8pt;
+            font-weight: bold;
+            color: #000000;
+            line-height: 1;
+        }
+        .grid-top-1 { top: 1mm; left: 25%; }
+        .grid-top-2 { top: 1mm; left: 50%; }
+        .grid-top-3 { top: 1mm; left: 75%; }
+        .grid-bottom-1 { bottom: 1mm; left: 25%; }
+        .grid-bottom-2 { bottom: 1mm; left: 50%; }
+        .grid-bottom-3 { bottom: 1mm; left: 75%; }
+        .grid-left-a { left: 1.2mm; top: 25%; }
+        .grid-left-b { left: 1.2mm; top: 75%; }
+        .grid-right-a { right: 1.2mm; top: 25%; }
+        .grid-right-b { right: 1.2mm; top: 75%; }
+
+        /* Drawing Canvas - stops 26mm above bottom, providing full clearance */
+        .drawing-canvas {
+            position: absolute;
+            top: 5mm;
+            left: 7mm;
+            right: 7mm;
+            bottom: 26mm;
+            overflow: hidden;
+            font-size: 8pt;
+            line-height: 1.35;
+            color: #111111;
+        }
+        .drawing-canvas h1 {
+            font-size: 11pt;
+            margin: 0 0 2mm 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1.5px solid #000000;
+            padding-bottom: 1mm;
+        }
+
+        /* Adjacent Title Block Group along bottom margin with ZERO GAP */
+        .title-block-group {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            display: flex;
+            align-items: stretch;
+            height: 23mm;
+            z-index: 10;
+        }
+
+        /* Adjacent Left Box: Organization, Project, Title, Rev */
+        .title-box-left {
+            width: 115mm;
+            height: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+            border-top: 1.5px solid #000000;
+            border-left: 1.5px solid #000000;
+            border-right: none;
+            border-bottom: none;
+        }
+        .title-box-left td {
+            border-top: 1px solid #000000;
+            border-left: 1px solid #000000;
+            border-right: none;
+            border-bottom: none;
+            padding: 1.2mm 2.2mm;
+            vertical-align: top;
+            font-family: "Courier New", Courier, monospace, Arial, sans-serif;
+        }
+
+        /* Original Legend Box: Document Number, Date, Sheet, Engineer, Status */
+        .title-box-right {
+            width: 125mm;
+            height: 100%;
+            border-collapse: collapse;
+            background: #ffffff;
+            border-top: 1.5px solid #000000;
+            border-left: 1.5px solid #000000;
+            border-right: none;
+            border-bottom: none;
+        }
+        .title-box-right td {
+            border-top: 1px solid #000000;
+            border-left: 1px solid #000000;
+            border-right: none;
+            border-bottom: none;
+            padding: 1mm 2mm;
+            vertical-align: top;
+            font-family: "Courier New", Courier, monospace, Arial, sans-serif;
+        }
+
+        .field-label {
+            font-size: 5.5pt;
+            font-weight: bold;
+            text-transform: uppercase;
+            color: #555555;
+            display: block;
+            margin-bottom: 0.3mm;
+            font-family: Arial, sans-serif;
+            line-height: 1;
+        }
+        .field-val {
+            font-size: 7pt;
+            font-weight: bold;
+            color: #000000;
+            line-height: 1.1;
+            display: block;
+        }
+        .field-val.large {
+            font-size: 8.5pt;
+        }
+    </style>
+</head>
+<body>
+
+<div class="a4-sheet">
+    <div class="outer-border">
+        <!-- Coordinate Marks -->
+        <div class="grid-mark grid-top-1">1</div>
+        <div class="grid-mark grid-top-2">2</div>
+        <div class="grid-mark grid-top-3">3</div>
+        <div class="grid-mark grid-bottom-1">1</div>
+        <div class="grid-mark grid-bottom-2">2</div>
+        <div class="grid-mark grid-bottom-3">3</div>
+        <div class="grid-mark grid-left-a">A</div>
+        <div class="grid-mark grid-left-b">B</div>
+        <div class="grid-mark grid-right-a">A</div>
+        <div class="grid-mark grid-right-b">B</div>
+
+        <div class="inner-border">
+            <div class="drawing-canvas">
+                <h1>Adjacent Title Block Architecture Test</h1>
+                <p>Testing the horizontal adjacent layout where Project & Document Title sit adjacent to the left of the original legend box with zero gap from the lower margin.</p>
+            </div>
+
+            <!-- Adjacent Title Block Strip with ZERO GAP from lower margin -->
+            <div class="title-block-group">
+                <!-- Adjacent Left Box -->
+                <table class="title-box-left">
+                    <tr>
+                        <td style="width: 82%;">
+                            <span class="field-label">Organization / Project</span>
+                            <span class="field-val large">DASHCAM PROTOTYPE PROJECT</span>
+                        </td>
+                        <td style="width: 18%;">
+                            <span class="field-label">Size</span>
+                            <span class="field-val">A4</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="field-label">Document Title</span>
+                            <span class="field-val large">SBC SCHEMATICS SPECIFICATION</span>
+                        </td>
+                        <td>
+                            <span class="field-label">Rev</span>
+                            <span class="field-val">1.4</span>
+                        </td>
+                    </tr>
+                </table>
+
+                <!-- Original Legend Box -->
+                <table class="title-box-right">
+                    <tr>
+                        <td style="width: 44%;">
+                            <span class="field-label">Document Number</span>
+                            <span class="field-val">ENG-DASH-SBC-SCH-001</span>
+                        </td>
+                        <td style="width: 34%;">
+                            <span class="field-label">Date</span>
+                            <span class="field-val">2026-10-08</span>
+                        </td>
+                        <td style="width: 22%;">
+                            <span class="field-label">Sheet</span>
+                            <span class="field-val">1 OF 2</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="field-label">Design Engineer</span>
+                            <span class="field-val">Souvik H</span>
+                        </td>
+                        <td colspan="2">
+                            <span class="field-label">Engineer Registration No.</span>
+                            <span class="field-val">IN-ENG-2022-22824</span>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <span class="field-label">Engineering Discipline</span>
+                            <span class="field-val">EMBEDDED HARDWARE & SCHEMATICS</span>
+                        </td>
+                        <td colspan="2">
+                            <span class="field-label">Status</span>
+                            <span class="field-val">RELEASED</span>
+                        </td>
+                    </tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

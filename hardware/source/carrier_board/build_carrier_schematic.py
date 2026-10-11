@@ -1,11 +1,9 @@
 import os
 import uuid
-import subprocess
 from sym_definitions import LIB_SYMBOLS
 
 BASE_DIR = r"C:\Users\souvk\Downloads\Dashcam_project"
 CARRIER_DIR = os.path.join(BASE_DIR, "hardware", "source", "carrier_board")
-KICAD_CLI = r"C:\Program Files\KiCad\10.0\bin\kicad-cli.exe"
 
 def uid():
     return str(uuid.uuid4())
@@ -17,21 +15,62 @@ class SchematicBuilder:
         self.junctions = []
         self.labels = []
         self.texts = []
+        self.shapes = []
 
-    def add_symbol(self, lib_id, ref, val, x, y, rot=0, footprint="", pins=[]):
+    def add_symbol(self, lib_id, ref, val, x, y, rot=0, footprint="", 
+                   ref_offset=(0, -2.54), val_offset=(0, 2.54), 
+                   ref_hide=False, val_hide=False, pins=[]):
         s_uid = uid()
-        lines = []
-        lines.append(f'\t(symbol (lib_id "{lib_id}") (at {x} {y} {rot}) (unit 1)')
-        lines.append('\t\t(exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no)')
-        lines.append(f'\t\t(uuid "{s_uid}")')
-        lines.append(f'\t\t(property "Reference" "{ref}" (at {x} {y-2.54} {rot}) (effects (font (size 1.27 1.27))))')
-        lines.append(f'\t\t(property "Value" "{val}" (at {x} {y+2.54} {rot}) (effects (font (size 1.27 1.27))))')
-        lines.append(f'\t\t(property "Footprint" "{footprint}" (at {x} {y} {rot}) (effects (font (size 1.27 1.27)) (hide yes)))')
+        rx, ry = round(x + ref_offset[0], 2), round(y + ref_offset[1], 2)
+        vx, vy = round(x + val_offset[0], 2), round(y + val_offset[1], 2)
+        ref_h = " (hide yes)" if ref_hide else ""
+        val_h = " (hide yes)" if val_hide else ""
+        
+        lines = [
+            f'\t(symbol (lib_id "{lib_id}") (at {x} {y} {rot}) (unit 1)',
+            '\t\t(exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no)',
+            f'\t\t(uuid "{s_uid}")',
+            f'\t\t(property "Reference" "{ref}" (at {rx} {ry} {rot}) (effects (font (size 1.27 1.27))){ref_h})',
+            f'\t\t(property "Value" "{val}" (at {vx} {vy} {rot}) (effects (font (size 1.27 1.27))){val_h})',
+            f'\t\t(property "Footprint" "{footprint}" (at {x} {y} {rot}) (effects (font (size 1.27 1.27)) (hide yes)))'
+        ]
         for p in pins:
             lines.append(f'\t\t(pin "{p}" (uuid "{uid()}"))')
         lines.append('\t)')
         self.symbols.append("\n".join(lines))
-        return {"lib_id": lib_id, "ref": ref, "val": val, "x": x, "y": y, "rot": rot}
+
+    def add_power_symbol(self, pwr_type, x, y):
+        # Power symbols: Reference is always hidden, Value displayed neatly
+        p_uid = uid()
+        ref = f"#PWR_{uid()[:6]}"
+        val = pwr_type
+        if pwr_type == "GND":
+            lib_id = "power:GND"
+            vx, vy = x, round(y + 2.54, 2)
+        elif pwr_type == "+5V":
+            lib_id = "power:+5V"
+            vx, vy = x, round(y - 2.54, 2)
+        elif pwr_type == "+3V3":
+            lib_id = "power:+3V3"
+            vx, vy = x, round(y - 2.54, 2)
+        elif pwr_type == "+12V":
+            lib_id = "power:+12V"
+            vx, vy = x, round(y - 2.54, 2)
+        else:
+            lib_id = f"power:{pwr_type}"
+            vx, vy = x, round(y - 2.54, 2)
+
+        lines = [
+            f'\t(symbol (lib_id "{lib_id}") (at {x} {y} 0) (unit 1)',
+            '\t\t(exclude_from_sim no) (in_bom yes) (on_board yes) (dnp no)',
+            f'\t\t(uuid "{p_uid}")',
+            f'\t\t(property "Reference" "{ref}" (at {x} {y} 0) (effects (font (size 1.27 1.27)) (hide yes)))',
+            f'\t\t(property "Value" "{val}" (at {vx} {vy} 0) (effects (font (size 1.27 1.27))))',
+            f'\t\t(property "Footprint" "" (at {x} {y} 0) (effects (font (size 1.27 1.27)) (hide yes)))',
+            f'\t\t(pin "1" (uuid "{uid()}"))',
+            '\t)'
+        ]
+        self.symbols.append("\n".join(lines))
 
     def add_wire(self, x1, y1, x2, y2):
         x1, y1, x2, y2 = round(x1, 2), round(y1, 2), round(x2, 2), round(y2, 2)
@@ -47,8 +86,13 @@ class SchematicBuilder:
         x, y = round(x, 2), round(y, 2)
         self.labels.append(f'\t(label "{name}" (at {x} {y} {rot}) (effects (font (size 1.27 1.27))) (uuid "{uid()}"))')
 
-    def add_text(self, txt, x, y, size=1.5):
-        self.texts.append(f'\t(text "{txt}" (at {x} {y} 0) (effects (font (size {size} {size}) (bold yes))) (uuid "{uid()}"))')
+    def add_text(self, txt, x, y, size=1.5, bold=True):
+        b = "yes" if bold else "no"
+        self.texts.append(f'\t(text "{txt}" (at {x} {y} 0) (effects (font (size {size} {size}) (bold {b}))) (uuid "{uid()}"))')
+
+    def add_box(self, x1, y1, x2, y2):
+        # Dashed border rectangle around functional blocks
+        self.shapes.append(f'\t(polyline (pts (xy {x1} {y1}) (xy {x2} {y1}) (xy {x2} {y2}) (xy {x1} {y2}) (xy {x1} {y1})) (stroke (width 0.25) (type dash)) (fill (type none)) (uuid "{uid()}"))')
 
     def export_schematic(self, filename="carrier_board.kicad_sch"):
         sch_lines = [
@@ -57,18 +101,19 @@ class SchematicBuilder:
             '\t(generator "eeschema")',
             '\t(generator_version "10.0")',
             f'\t(uuid "{uid()}")',
-            '\t(paper "A4")',
+            '\t(paper "A3")',
             '\t(title_block',
             '\t\t(title "DASHCAM CARRIER BOARD SCHEMATIC")',
-            '\t\t(date "2026-10-09")',
+            '\t\t(date "2026-10-11")',
             '\t\t(rev "1.4")',
             '\t\t(company "DASHCAM PROTOTYPE PROJECT")',
             '\t\t(comment 1 "Engineer: Souvik H | Regn: IN-ENG-2022-22824")',
             '\t\t(comment 2 "Discipline: EMBEDDED SYSTEMS & HARDWARE")',
-            '\t\t(comment 3 "Platform: Luckfox Pico Mini B (RV1103) + SC3336 + IP5306")',
+            '\t\t(comment 3 "Luckfox Pico Mini B (RV1103) + SC3336 + IP5306 + RTL8188EUS")',
             '\t\t(comment 4 "Status: RELEASED")',
             '\t)',
             LIB_SYMBOLS,
+            "\n".join(self.shapes),
             "\n".join(self.texts),
             "\n".join(self.symbols),
             "\n".join(self.wires),
@@ -79,275 +124,376 @@ class SchematicBuilder:
         out_path = os.path.join(CARRIER_DIR, filename)
         with open(out_path, "w", encoding="utf-8") as f:
             f.write("\n".join(sch_lines))
-        print(f"[OK] Schematic written to {out_path}")
+        print(f"[OK] Perfect Schematic written to {out_path}")
         return out_path
 
-def generate():
+def build():
     sb = SchematicBuilder()
 
-    # Section Headers
-    sb.add_text("1. AUTOMOTIVE 12V INPUT & LM2596 BUCK PRE-REGULATOR", 25, 22)
-    sb.add_text("2. IP5306 BMS & 3.7V LIPO BATTERY BUFFER", 25, 105)
-    sb.add_text("3. LUCKFOX PICO MINI B SBC SOCKETS", 145, 22)
-    sb.add_text("4. USB WI-FI PORT & USER INTERFACE", 145, 105)
-    sb.add_text("5. SMARTSENS SC3336 3MP CAMERA 15-PIN FPC", 225, 22)
+    # =========================================================================
+    # ZONE 1: 12V AUTOMOTIVE INPUT & LM2596 BUCK PRE-REGULATOR
+    # X: 20 -> 195, Y: 20 -> 108
+    # =========================================================================
+    sb.add_box(20, 20, 195, 108)
+    sb.add_text("SECTION 1: AUTOMOTIVE 12V-24V INPUT & LM2596 BUCK PRE-REGULATOR", 25, 27, size=1.6)
+    sb.add_text("Pre-regulates 12V automotive power to +5V_PRE (2A capacity)", 25, 33, size=1.1, bold=False)
 
-    # -----------------------------------------------------------------
-    # BLOCK 1: 12V INPUT & LM2596
-    # -----------------------------------------------------------------
-    # J1: 12V IN
-    sb.add_symbol("Connector_Generic:Conn_01x02", "J1", "12V_CAR_IN", 40, 45, footprint="TerminalBlock:TerminalBlock_bornier-2_P5.08mm", pins=["1","2"])
-    # J1 Pin 1: (34.92, 45.0) | Pin 2: (34.92, 47.54)
+    # J1: 12V Terminal Block (Conn_01x02) at (40, 55)
+    # Pin 1 (12V): (34.92, 55.0) | Pin 2 (GND): (34.92, 57.54)
+    sb.add_symbol("Connector_Generic:Conn_01x02", "J1", "12V_CAR_IN", 40, 55, 
+                  footprint="TerminalBlock:TerminalBlock_bornier-2_P5.08mm",
+                  ref_offset=(0, -5.0), val_offset=(0, 6.0), pins=["1", "2"])
 
-    # D1: SMBJ5.0A TVS (center at 55, 45) -> Pin 1: (55, 41.19), Pin 2: (55, 48.81)
-    sb.add_symbol("Device:D_TVS", "D1", "SMBJ5.0A", 55, 45, footprint="Diode_SMD:D_SMB", pins=["1","2"])
+    # D1: SMBJ5.0A TVS at (60, 65) - Pins at (60, 61.19) and (60, 68.81)
+    sb.add_symbol("Device:D_TVS", "D1", "SMBJ5.0A", 60, 65,
+                  footprint="Diode_SMD:D_SMB",
+                  ref_offset=(4.5, -2.0), val_offset=(4.5, 2.0), pins=["1", "2"])
 
-    # C1: 470uF/25V (center at 68, 45) -> Pin 1: (68, 41.19), Pin 2: (68, 48.81)
-    sb.add_symbol("Device:C_Polarized", "C1", "470uF/25V", 68, 45, footprint="Capacitor_THT:CP_Radial_D8.0mm_P3.50mm", pins=["1","2"])
+    # C1: 470uF/25V Polarized Cap at (75, 65) - Pins at (75, 61.19) and (75, 68.81)
+    sb.add_symbol("Device:C_Polarized", "C1", "470uF/25V", 75, 65,
+                  footprint="Capacitor_THT:CP_Radial_D8.0mm_P3.50mm",
+                  ref_offset=(4.5, -2.0), val_offset=(4.5, 2.0), pins=["1", "2"])
 
-    # U1: LM2596 (center at 95, 50)
-    # Pin 1 (IN+): (81.03, 47.46) | Pin 2 (IN-): (81.03, 52.54)
-    # Pin 3 (OUT+): (108.97, 47.46) | Pin 4 (OUT-): (108.97, 52.54)
-    sb.add_symbol("Module:LM2596_Module", "U1", "LM2596_BUCK", 95, 50, footprint="Module:LM2596_Module", pins=["1","2","3","4"])
+    # U1: LM2596 Buck Module at (115, 65)
+    # Pin 1 (IN+): (101.03, 62.46) | Pin 2 (IN-): (101.03, 67.54)
+    # Pin 3 (OUT+): (128.97, 62.46) | Pin 4 (OUT-): (128.97, 67.54)
+    sb.add_symbol("Module:LM2596_Module", "U1", "LM2596_BUCK", 115, 65,
+                  footprint="Module:LM2596_Module",
+                  ref_offset=(0, -8.0), val_offset=(0, 9.5), pins=["1", "2", "3", "4"])
 
-    # C2: 470uF/25V (center at 120, 45) -> Pin 1: (120, 41.19), Pin 2: (120, 48.81)
-    sb.add_symbol("Device:C_Polarized", "C2", "470uF/25V", 120, 45, footprint="Capacitor_THT:CP_Radial_D8.0mm_P3.50mm", pins=["1","2"])
+    # C2: 470uF/25V Output Filter Cap at (150, 65)
+    sb.add_symbol("Device:C_Polarized", "C2", "470uF/25V", 150, 65,
+                  footprint="Capacitor_THT:CP_Radial_D8.0mm_P3.50mm",
+                  ref_offset=(4.5, -2.0), val_offset=(4.5, 2.0), pins=["1", "2"])
 
-    # C3: 100nF (center at 130, 45) -> Pin 1: (130, 41.19), Pin 2: (130, 48.81)
-    sb.add_symbol("Device:C", "C3", "100nF", 130, 45, footprint="Capacitor_SMD:C_0805_2012Metric", pins=["1","2"])
+    # C3: 100nF Ceramic Decoupling Cap at (165, 65)
+    sb.add_symbol("Device:C", "C3", "100nF", 165, 65,
+                  footprint="Capacitor_SMD:C_0805_2012Metric",
+                  ref_offset=(4.5, -2.0), val_offset=(4.5, 2.0), pins=["1", "2"])
 
-    # 12V In Wire & Bus
-    sb.add_wire(34.92, 45.0, 34.92, 41.19)
-    sb.add_wire(34.92, 41.19, 55.0, 41.19)
-    sb.add_junction(55.0, 41.19)
-    sb.add_wire(55.0, 41.19, 68.0, 41.19)
-    sb.add_junction(68.0, 41.19)
-    sb.add_wire(68.0, 41.19, 81.03, 41.19)
-    sb.add_wire(81.03, 41.19, 81.03, 47.46) # Into U1 Pin 1
-    sb.add_symbol("power:+12V", "#PWR101", "+12V", 34.92, 38.0, pins=["1"])
-    sb.add_wire(34.92, 41.19, 34.92, 38.0)
+    # 12V In Rails & Wires (at Y = 50.0 for +12V Bus, Y = 78.0 for GND Bus)
+    sb.add_wire(34.92, 55.0, 34.92, 50.0)
+    sb.add_wire(34.92, 50.0, 60.0, 50.0)
+    sb.add_junction(60.0, 50.0)
+    sb.add_wire(60.0, 50.0, 75.0, 50.0)
+    sb.add_junction(75.0, 50.0)
+    sb.add_wire(75.0, 50.0, 101.03, 50.0)
+    sb.add_wire(101.03, 50.0, 101.03, 62.46) # U1 Pin 1
 
-    # Input Ground Bus (at Y=52.54)
-    sb.add_wire(34.92, 47.54, 34.92, 52.54)
-    sb.add_wire(34.92, 52.54, 55.0, 52.54)
-    sb.add_wire(55.0, 48.81, 55.0, 52.54)
-    sb.add_junction(55.0, 52.54)
-    sb.add_wire(55.0, 52.54, 68.0, 52.54)
-    sb.add_wire(68.0, 48.81, 68.0, 52.54)
-    sb.add_junction(68.0, 52.54)
-    sb.add_wire(68.0, 52.54, 81.03, 52.54) # Into U1 Pin 2
-    sb.add_symbol("power:GND", "#PWR102", "GND", 55.0, 55.0, pins=["1"])
-    sb.add_wire(55.0, 52.54, 55.0, 55.0)
+    sb.add_wire(60.0, 50.0, 60.0, 61.19) # D1 Pin 1
+    sb.add_wire(75.0, 50.0, 75.0, 61.19) # C1 Pin 1
 
-    # Output +5V_PRE Bus (at Y=41.19)
-    sb.add_wire(108.97, 47.46, 108.97, 41.19)
-    sb.add_wire(108.97, 41.19, 120.0, 41.19) # Into C2 Pin 1
-    sb.add_junction(120.0, 41.19)
-    sb.add_wire(120.0, 41.19, 130.0, 41.19) # Into C3 Pin 1
-    sb.add_junction(130.0, 41.19)
-    sb.add_wire(130.0, 41.19, 138.0, 41.19)
-    sb.add_label("+5V_PRE", 138.0, 41.19)
+    sb.add_power_symbol("+12V", 34.92, 46.0)
+    sb.add_wire(34.92, 50.0, 34.92, 46.0)
 
-    # Output Ground Bus (at Y=52.54)
-    sb.add_wire(108.97, 52.54, 120.0, 52.54)
-    sb.add_wire(120.0, 48.81, 120.0, 52.54)
-    sb.add_junction(120.0, 52.54)
-    sb.add_wire(120.0, 52.54, 130.0, 52.54)
-    sb.add_wire(130.0, 48.81, 130.0, 52.54)
-    sb.add_junction(130.0, 52.54)
-    sb.add_symbol("power:GND", "#PWR103", "GND", 120.0, 55.0, pins=["1"])
-    sb.add_wire(120.0, 52.54, 120.0, 55.0)
+    # Input GND Bus at Y = 78.0
+    sb.add_wire(34.92, 57.54, 34.92, 78.0)
+    sb.add_wire(34.92, 78.0, 60.0, 78.0)
+    sb.add_junction(60.0, 78.0)
+    sb.add_wire(60.0, 78.0, 75.0, 78.0)
+    sb.add_junction(75.0, 78.0)
+    sb.add_wire(75.0, 78.0, 101.03, 78.0)
+    sb.add_wire(101.03, 78.0, 101.03, 67.54) # U1 Pin 2
 
-    # -----------------------------------------------------------------
-    # BLOCK 2: BMS & LIPO CHARGER/BOOST (IP5306)
-    # -----------------------------------------------------------------
-    # J2: JST-PH 2.0mm LiPo Connector (center at 40, 135)
-    # Pin 1: (34.92, 135.0) | Pin 2: (34.92, 137.54)
-    sb.add_symbol("Connector_Generic:Conn_01x02", "J2", "JST_PH_LIPO", 40, 135, footprint="Connector_JST:JST_PH_S2B-PH-K_1x02_P2.00mm_Horizontal", pins=["1","2"])
+    sb.add_wire(60.0, 68.81, 60.0, 78.0) # D1 Pin 2
+    sb.add_wire(75.0, 68.81, 75.0, 78.0) # C1 Pin 2
 
-    # C5: 100nF Battery bypass (center at 55, 135) -> Pin 1: (55, 131.19), Pin 2: (55, 138.81)
-    sb.add_symbol("Device:C", "C5", "100nF", 55, 135, footprint="Capacitor_SMD:C_0805_2012Metric", pins=["1","2"])
+    sb.add_power_symbol("GND", 60.0, 82.0)
+    sb.add_wire(60.0, 78.0, 60.0, 82.0)
 
-    # U2: IP5306 BMS (center at 85, 135)
-    # Pin 1 (VIN): (71.03, 131.19) | Pin 2 (BAT+): (71.03, 136.27)
-    # Pin 3 (VOUT_5V): (98.97, 131.19) | Pin 4 (GND): (85.0, 147.70)
-    sb.add_symbol("Module:IP5306_BMS", "U2", "IP5306_BMS", 85, 135, footprint="Module:IP5306_Module", pins=["1","2","3","4"])
+    # Output +5V_PRE Bus at Y = 50.0
+    sb.add_wire(128.97, 62.46, 128.97, 50.0)
+    sb.add_wire(128.97, 50.0, 150.0, 50.0)
+    sb.add_junction(150.0, 50.0)
+    sb.add_wire(150.0, 50.0, 165.0, 50.0)
+    sb.add_junction(165.0, 50.0)
+    sb.add_wire(165.0, 50.0, 185.0, 50.0)
 
-    # R1: 100R Keep-Alive Dummy Load (center at 115, 135) -> Pin 1: (115, 131.19), Pin 2: (115, 138.81)
-    sb.add_symbol("Device:R", "R1", "100R_0.25W", 115, 135, footprint="Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal", pins=["1","2"])
+    sb.add_wire(150.0, 50.0, 150.0, 61.19) # C2 Pin 1
+    sb.add_wire(165.0, 50.0, 165.0, 61.19) # C3 Pin 1
 
-    # C4: 100nF Decoupling (center at 125, 135) -> Pin 1: (125, 131.19), Pin 2: (125, 138.81)
-    sb.add_symbol("Device:C", "C4", "100nF", 125, 135, footprint="Capacitor_SMD:C_0805_2012Metric", pins=["1","2"])
+    sb.add_label("+5V_PRE", 185.0, 50.0)
 
-    # LiPo Battery VBAT Rail
-    sb.add_wire(34.92, 135.0, 55.0, 135.0)
-    sb.add_wire(55.0, 131.19, 55.0, 135.0)
-    sb.add_junction(55.0, 135.0)
-    sb.add_wire(55.0, 135.0, 71.03, 135.0)
-    sb.add_wire(71.03, 135.0, 71.03, 136.27) # Into U2 Pin 2 (BAT+)
-    sb.add_label("VBAT", 42.0, 133.0)
+    # Output GND Bus at Y = 78.0
+    sb.add_wire(128.97, 67.54, 128.97, 78.0)
+    sb.add_wire(128.97, 78.0, 150.0, 78.0)
+    sb.add_junction(150.0, 78.0)
+    sb.add_wire(150.0, 78.0, 165.0, 78.0)
+    sb.add_junction(165.0, 78.0)
 
-    # Battery Ground
-    sb.add_wire(34.92, 137.54, 34.92, 142.0)
-    sb.add_wire(55.0, 138.81, 55.0, 142.0)
-    sb.add_wire(34.92, 142.0, 55.0, 142.0)
-    sb.add_symbol("power:GND", "#PWR201", "GND", 45.0, 144.0, pins=["1"])
-    sb.add_wire(45.0, 142.0, 45.0, 144.0)
+    sb.add_wire(150.0, 68.81, 150.0, 78.0) # C2 Pin 2
+    sb.add_wire(165.0, 68.81, 165.0, 78.0) # C3 Pin 2
+
+    sb.add_power_symbol("GND", 150.0, 82.0)
+    sb.add_wire(150.0, 78.0, 150.0, 82.0)
+
+
+    # =========================================================================
+    # ZONE 2: IP5306 BMS & 3.7V LIPO BATTERY BUFFER
+    # X: 20 -> 195, Y: 115 -> 200
+    # =========================================================================
+    sb.add_box(20, 115, 195, 200)
+    sb.add_text("SECTION 2: IP5306 BMS & 3.7V LIPO BATTERY BUFFER", 25, 122, size=1.6)
+    sb.add_text("Seamless UPS power path: Charges 1000mAh LiPo & boosts to +5V_SYS", 25, 128, size=1.1, bold=False)
+
+    # J2: JST-PH 2.0mm LiPo Connector at (40, 160)
+    # Pin 1 (VBAT): (34.92, 160.0) | Pin 2 (GND): (34.92, 162.54)
+    sb.add_symbol("Connector_Generic:Conn_01x02", "J2", "JST_PH_LIPO", 40, 160,
+                  footprint="Connector_JST:JST_PH_S2B-PH-K_1x02_P2.00mm_Horizontal",
+                  ref_offset=(0, -5.0), val_offset=(0, 6.0), pins=["1", "2"])
+
+    # C5: 100nF Battery Bypass Cap at (60, 160)
+    sb.add_symbol("Device:C", "C5", "100nF", 60, 160,
+                  footprint="Capacitor_SMD:C_0805_2012Metric",
+                  ref_offset=(4.5, -2.0), val_offset=(4.5, 2.0), pins=["1", "2"])
+
+    # U2: IP5306 BMS Module at (105, 160)
+    # Pin 1 (VIN): (91.03, 156.19) | Pin 2 (BAT+): (91.03, 161.27)
+    # Pin 3 (VOUT_5V): (118.97, 156.19) | Pin 4 (GND): (105.0, 172.70)
+    sb.add_symbol("Module:IP5306_BMS", "U2", "IP5306_BMS", 105, 160,
+                  footprint="Module:IP5306_Module",
+                  ref_offset=(0, -9.0), val_offset=(0, 16.0), pins=["1", "2", "3", "4"])
+
+    # R1: 100R Keep-Alive Dummy Load at (145, 160)
+    sb.add_symbol("Device:R", "R1", "100R_0.25W", 145, 160,
+                  footprint="Resistor_THT:R_Axial_DIN0207_L6.3mm_D2.5mm_P7.62mm_Horizontal",
+                  ref_offset=(4.5, -2.0), val_offset=(4.5, 2.0), pins=["1", "2"])
+
+    # C4: 100nF Output Decoupling Cap at (160, 160)
+    sb.add_symbol("Device:C", "C4", "100nF", 160, 160,
+                  footprint="Capacitor_SMD:C_0805_2012Metric",
+                  ref_offset=(4.5, -2.0), val_offset=(4.5, 2.0), pins=["1", "2"])
 
     # U2 Input (+5V_PRE)
-    sb.add_wire(71.03, 131.19, 62.0, 131.19)
-    sb.add_label("+5V_PRE", 62.0, 131.19)
+    sb.add_wire(91.03, 156.19, 75.0, 156.19)
+    sb.add_wire(75.0, 156.19, 75.0, 140.0)
+    sb.add_wire(75.0, 140.0, 30.0, 140.0)
+    sb.add_label("+5V_PRE", 30.0, 140.0)
 
-    # U2 GND (Pin 4)
-    sb.add_symbol("power:GND", "#PWR202", "GND", 85.0, 150.0, pins=["1"])
-    sb.add_wire(85.0, 147.70, 85.0, 150.0)
+    # Battery VBAT Wire
+    sb.add_wire(34.92, 160.0, 60.0, 160.0)
+    sb.add_wire(60.0, 156.19, 60.0, 160.0) # C5 Pin 1
+    sb.add_junction(60.0, 160.0)
+    sb.add_wire(60.0, 160.0, 91.03, 160.0)
+    sb.add_wire(91.03, 160.0, 91.03, 161.27) # U2 Pin 2 (BAT+)
+    sb.add_label("VBAT", 45.0, 158.0)
 
-    # U2 Output (+5V_SYS) Bus (at Y=131.19)
-    sb.add_wire(98.97, 131.19, 115.0, 131.19) # Into R1 Pin 1
-    sb.add_junction(115.0, 131.19)
-    sb.add_wire(115.0, 131.19, 125.0, 131.19) # Into C4 Pin 1
-    sb.add_junction(125.0, 131.19)
-    sb.add_wire(125.0, 131.19, 135.0, 131.19)
-    sb.add_symbol("power:+5V", "#PWR203", "+5V", 135.0, 128.0, pins=["1"])
-    sb.add_wire(135.0, 131.19, 135.0, 128.0)
-    sb.add_label("+5V_SYS", 135.0, 131.19)
+    # Battery GND
+    sb.add_wire(34.92, 162.54, 34.92, 175.0)
+    sb.add_wire(34.92, 175.0, 60.0, 175.0)
+    sb.add_wire(60.0, 163.81, 60.0, 175.0) # C5 Pin 2
+    sb.add_power_symbol("GND", 45.0, 178.0)
+    sb.add_wire(45.0, 175.0, 45.0, 178.0)
 
-    # Output Ground
-    sb.add_wire(115.0, 138.81, 125.0, 138.81)
-    sb.add_symbol("power:GND", "#PWR204", "GND", 120.0, 142.0, pins=["1"])
-    sb.add_wire(120.0, 138.81, 120.0, 142.0)
+    # U2 GND Pin 4
+    sb.add_power_symbol("GND", 105.0, 176.0)
+    sb.add_wire(105.0, 172.70, 105.0, 176.0)
 
-    # -----------------------------------------------------------------
-    # BLOCK 3: LUCKFOX PICO MINI B SBC SOCKETS
-    # -----------------------------------------------------------------
-    # J3: Left Socket (center at 165, 55)
-    # Pins: Pin 1 at (159.92, 55.0), Pin 2 at (159.92, 57.54), ..., Pin 8 at (159.92, 72.78)
-    sb.add_symbol("Connector_Generic:Conn_01x08", "J3", "LUCKFOX_J1_LEFT", 165, 55, footprint="Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical", pins=[str(i) for i in range(1,9)])
-    j3_pins = [
-        ("1", "UART2_TX", 55.0),
-        ("2", "UART2_RX", 57.54),
-        ("3", "GND",      60.08),
-        ("4", "+3V3",     62.62),
-        ("5", "I2C3_SCL", 65.16),
-        ("6", "I2C3_SDA", 67.70),
-        ("7", "GND",      70.24),
-        ("8", "STAT_LED", 72.78)
+    # U2 Output (+5V_SYS) at Y = 145.0
+    sb.add_wire(118.97, 156.19, 130.0, 156.19)
+    sb.add_wire(130.0, 156.19, 130.0, 145.0)
+    sb.add_wire(130.0, 145.0, 145.0, 145.0)
+    sb.add_junction(145.0, 145.0)
+    sb.add_wire(145.0, 145.0, 160.0, 145.0)
+    sb.add_junction(160.0, 145.0)
+    sb.add_wire(160.0, 145.0, 185.0, 145.0)
+
+    sb.add_wire(145.0, 145.0, 145.0, 156.19) # R1 Pin 1
+    sb.add_wire(160.0, 145.0, 160.0, 156.19) # C4 Pin 1
+
+    sb.add_power_symbol("+5V", 185.0, 140.0)
+    sb.add_wire(185.0, 145.0, 185.0, 140.0)
+    sb.add_label("+5V_SYS", 185.0, 145.0)
+
+    # Output GND Bus for R1 & C4 at Y = 175.0
+    sb.add_wire(145.0, 163.81, 145.0, 175.0)
+    sb.add_wire(145.0, 175.0, 160.0, 175.0)
+    sb.add_wire(160.0, 163.81, 160.0, 175.0)
+    sb.add_power_symbol("GND", 152.5, 178.0)
+    sb.add_wire(152.5, 175.0, 152.5, 178.0)
+
+
+    # =========================================================================
+    # ZONE 4: USB 2.0 WI-FI INTERFACE & USER CONTROLS
+    # X: 20 -> 195, Y: 205 -> 282
+    # =========================================================================
+    sb.add_box(20, 205, 195, 282)
+    sb.add_text("SECTION 4: USB 2.0 WI-FI DONGLE PORT & USER CONTROLS", 25, 212, size=1.6)
+    sb.add_text("Host port for RTL8188EUS Wi-Fi dongle, Mode Tactile Switch & Status LED", 25, 218, size=1.1, bold=False)
+
+    # J7: USB-A Female at (55, 240)
+    # Pin 1 (+5V): (49.92, 240.0)
+    # Pin 2 (DM):  (49.92, 242.54)
+    # Pin 3 (DP):  (49.92, 245.08)
+    # Pin 4 (GND): (49.92, 247.62)
+    sb.add_symbol("Connector_Generic:Conn_01x04", "J7", "USB_WIFI_PORT", 55, 240,
+                  footprint="Connector_USB:USB_A_Molex_67643_Horizontal",
+                  ref_offset=(0, -4.5), val_offset=(0, 12.0), pins=["1", "2", "3", "4"])
+
+    # C9: 100nF VBUS Decoupling Cap at (75, 240)
+    sb.add_symbol("Device:C", "C9", "100nF", 75, 240,
+                  footprint="Capacitor_SMD:C_0805_2012Metric",
+                  ref_offset=(4.5, -2.0), val_offset=(4.5, 2.0), pins=["1", "2"])
+
+    # J7 Pin 1 VBUS
+    sb.add_wire(49.92, 240.0, 35.0, 240.0)
+    sb.add_label("+5V_SYS", 35.0, 240.0)
+    sb.add_wire(49.92, 240.0, 75.0, 240.0)
+    sb.add_wire(75.0, 240.0, 75.0, 236.19) # C9 Pin 1
+    sb.add_power_symbol("GND", 75.0, 248.0)
+    sb.add_wire(75.0, 243.81, 75.0, 248.0) # C9 Pin 2
+
+    # J7 Pin 2 USB_DM & Pin 3 USB_DP
+    sb.add_wire(49.92, 242.54, 35.0, 242.54)
+    sb.add_label("USB_DM", 35.0, 242.54)
+
+    sb.add_wire(49.92, 245.08, 35.0, 245.08)
+    sb.add_label("USB_DP", 35.0, 245.08)
+
+    # J7 Pin 4 GND
+    sb.add_power_symbol("GND", 45.0, 252.0)
+    sb.add_wire(49.92, 247.62, 45.0, 247.62)
+    sb.add_wire(45.0, 247.62, 45.0, 252.0)
+
+    # SW1: Mode Pushbutton at (115, 245)
+    # Pin 1: (109.92, 245.0) | Pin 2: (120.08, 245.0)
+    sb.add_symbol("Switch:SW_Push", "SW1", "MODE_SW", 115, 245,
+                  footprint="Button_Switch_SMD:SW_Push_1P1T_NO_6x6mm_H9.5mm",
+                  ref_offset=(0, -4.0), val_offset=(0, 4.0), pins=["1", "2"])
+
+    # R2: 10k Pull-Up at (100, 245) - Pins at (100, 241.19) and (100, 248.81)
+    sb.add_symbol("Device:R", "R2", "10k", 100, 245,
+                  footprint="Resistor_SMD:R_0805_2012Metric",
+                  ref_offset=(-4.5, -2.0), val_offset=(-4.5, 2.0), pins=["1", "2"])
+
+    sb.add_power_symbol("+3V3", 100.0, 236.0)
+    sb.add_wire(100.0, 241.19, 100.0, 236.0) # R2 Pin 1
+
+    sb.add_wire(100.0, 248.81, 100.0, 255.0) # R2 Pin 2
+    sb.add_wire(100.0, 255.0, 109.92, 255.0)
+    sb.add_wire(109.92, 255.0, 109.92, 245.0) # Into SW1 Pin 1
+    sb.add_junction(109.92, 255.0)
+    sb.add_wire(109.92, 255.0, 95.0, 255.0)
+    sb.add_label("SW_SENSE", 95.0, 255.0)
+
+    sb.add_power_symbol("GND", 125.0, 250.0)
+    sb.add_wire(120.08, 245.0, 125.0, 245.0)
+    sb.add_wire(125.0, 245.0, 125.0, 250.0) # SW1 Pin 2
+
+    # LED Indicator circuit: R3 at (155, 245) & D2 at (175, 245)
+    sb.add_symbol("Device:R", "R3", "470R", 155, 245,
+                  footprint="Resistor_SMD:R_0805_2012Metric",
+                  ref_offset=(-4.5, -2.0), val_offset=(-4.5, 2.0), pins=["1", "2"])
+
+    sb.add_symbol("Device:LED", "D2", "STAT_LED_GRN", 175, 245,
+                  footprint="LED_SMD:LED_0805_2012Metric",
+                  ref_offset=(4.5, -2.0), val_offset=(4.5, 2.0), pins=["1", "2"])
+
+    sb.add_wire(155.0, 241.19, 140.0, 241.19)
+    sb.add_label("STAT_LED", 140.0, 241.19)
+
+    sb.add_wire(155.0, 248.81, 155.0, 255.0)
+    sb.add_wire(155.0, 255.0, 175.0, 255.0)
+    sb.add_wire(175.0, 255.0, 175.0, 241.19) # D2 Pin 1 (Anode)
+
+    sb.add_power_symbol("GND", 175.0, 253.0)
+    sb.add_wire(175.0, 248.81, 175.0, 253.0) # D2 Pin 2 (Cathode)
+
+
+    # =========================================================================
+    # ZONE 3: LUCKFOX PICO MINI B SBC PIN SOCKETS (40-PIN EXPANSION)
+    # X: 205 -> 405, Y: 20 -> 125
+    # =========================================================================
+    sb.add_box(205, 20, 405, 125)
+    sb.add_text("SECTION 3: LUCKFOX PICO MINI B (RV1103) SBC EXPANSION SOCKETS", 210, 27, size=1.6)
+    sb.add_text("Dual 8-Pin 2.54mm pitch female header sockets (J3 Left / J4 Right)", 210, 33, size=1.1, bold=False)
+
+    # J3: Left Socket at (270, 60)
+    # Pins: Pin i at (264.92, 60.0 + (i-1)*2.54)
+    sb.add_symbol("Connector_Generic:Conn_01x08", "J3", "LUCKFOX_J1_LEFT", 270, 60,
+                  footprint="Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical",
+                  ref_offset=(0, -4.5), val_offset=(0, 23.0), pins=[str(i) for i in range(1, 9)])
+
+    j3_signals = [
+        ("1", "UART2_TX", 60.0),
+        ("2", "UART2_RX", 62.54),
+        ("3", "GND",      65.08),
+        ("4", "+3V3",     67.62),
+        ("5", "I2C3_SCL", 70.16),
+        ("6", "I2C3_SDA", 72.70),
+        ("7", "GND",      75.24),
+        ("8", "STAT_LED", 77.78)
     ]
-    for p_num, p_net, p_y in j3_pins:
-        sb.add_wire(159.92, p_y, 150.0, p_y)
+    for p_num, p_net, p_y in j3_signals:
+        sb.add_wire(264.92, p_y, 225.0, p_y)
         if p_net == "GND":
-            sb.add_symbol("power:GND", f"#PWR3_{p_num}", "GND", 150.0, p_y+2.0, pins=["1"])
-            sb.add_wire(150.0, p_y, 150.0, p_y+2.0)
+            sb.add_power_symbol("GND", 225.0, p_y)
         elif p_net == "+3V3":
-            sb.add_symbol("power:+3V3", f"#PWR3_{p_num}", "+3V3", 150.0, p_y-2.0, pins=["1"])
-            sb.add_wire(150.0, p_y, 150.0, p_y-2.0)
-            sb.add_label("+3V3", 146.0, p_y)
+            sb.add_power_symbol("+3V3", 225.0, p_y)
+            sb.add_label("+3V3", 218.0, p_y)
         else:
-            sb.add_label(p_net, 150.0, p_y)
+            sb.add_label(p_net, 225.0, p_y)
 
-    # C7: 100nF on +3V3 (center at 145, 75)
-    sb.add_symbol("Device:C", "C7", "100nF", 145, 75, footprint="Capacitor_SMD:C_0805_2012Metric", pins=["1","2"])
-    sb.add_wire(145.0, 71.19, 145.0, 68.0)
-    sb.add_symbol("power:+3V3", "#PWR3_C7", "+3V3", 145.0, 68.0, pins=["1"])
-    sb.add_symbol("power:GND", "#PWR3_C7_GND", "GND", 145.0, 81.0, pins=["1"])
-    sb.add_wire(145.0, 78.81, 145.0, 81.0)
+    # C7: 100nF on +3V3 at (285, 70)
+    sb.add_symbol("Device:C", "C7", "100nF", 285, 70,
+                  footprint="Capacitor_SMD:C_0805_2012Metric",
+                  ref_offset=(4.5, -2.0), val_offset=(4.5, 2.0), pins=["1", "2"])
+    sb.add_power_symbol("+3V3", 285.0, 63.0)
+    sb.add_wire(285.0, 66.19, 285.0, 63.0)
+    sb.add_power_symbol("GND", 285.0, 78.0)
+    sb.add_wire(285.0, 73.81, 285.0, 78.0)
 
-    # J4: Right Socket (center at 205, 55)
-    sb.add_symbol("Connector_Generic:Conn_01x08", "J4", "LUCKFOX_J2_RIGHT", 205, 55, footprint="Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical", pins=[str(i) for i in range(1,9)])
-    j4_pins = [
-        ("1", "+5V_SYS",  55.0),
-        ("2", "GND",      57.54),
-        ("3", "USB_DM",   60.08),
-        ("4", "USB_DP",   62.62),
-        ("5", "CAM_RSTn", 65.16),
-        ("6", "CAM_PDN",  67.70),
-        ("7", "SW_SENSE", 70.24),
-        ("8", "GND",      72.78)
+    # J4: Right Socket at (360, 60)
+    # Pins: Pin i at (354.92, 60.0 + (i-1)*2.54)
+    sb.add_symbol("Connector_Generic:Conn_01x08", "J4", "LUCKFOX_J2_RIGHT", 360, 60,
+                  footprint="Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical",
+                  ref_offset=(0, -4.5), val_offset=(0, 23.0), pins=[str(i) for i in range(1, 9)])
+
+    j4_signals = [
+        ("1", "+5V_SYS",  60.0),
+        ("2", "GND",      62.54),
+        ("3", "USB_DM",   65.08),
+        ("4", "USB_DP",   67.62),
+        ("5", "CAM_RSTn", 70.16),
+        ("6", "CAM_PDN",  72.70),
+        ("7", "SW_SENSE", 75.24),
+        ("8", "GND",      77.78)
     ]
-    for p_num, p_net, p_y in j4_pins:
-        sb.add_wire(199.92, p_y, 190.0, p_y)
+    for p_num, p_net, p_y in j4_signals:
+        sb.add_wire(354.92, p_y, 315.0, p_y)
         if p_net == "GND":
-            sb.add_symbol("power:GND", f"#PWR4_{p_num}", "GND", 190.0, p_y+2.0, pins=["1"])
-            sb.add_wire(190.0, p_y, 190.0, p_y+2.0)
+            sb.add_power_symbol("GND", 315.0, p_y)
         elif p_net == "+5V_SYS":
-            sb.add_symbol("power:+5V", f"#PWR4_{p_num}", "+5V", 190.0, p_y-2.0, pins=["1"])
-            sb.add_wire(190.0, p_y, 190.0, p_y-2.0)
-            sb.add_label("+5V_SYS", 185.0, p_y)
+            sb.add_power_symbol("+5V", 315.0, p_y)
+            sb.add_label("+5V_SYS", 308.0, p_y)
         else:
-            sb.add_label(p_net, 190.0, p_y)
+            sb.add_label(p_net, 315.0, p_y)
 
-    # C6: 100nF on +5V_SYS (center at 215, 75)
-    sb.add_symbol("Device:C", "C6", "100nF", 215, 75, footprint="Capacitor_SMD:C_0805_2012Metric", pins=["1","2"])
-    sb.add_wire(215.0, 71.19, 215.0, 68.0)
-    sb.add_symbol("power:+5V", "#PWR3_C6", "+5V", 215.0, 68.0, pins=["1"])
-    sb.add_symbol("power:GND", "#PWR3_C6_GND", "GND", 215.0, 81.0, pins=["1"])
-    sb.add_wire(215.0, 78.81, 215.0, 81.0)
+    # C6: 100nF on +5V_SYS at (380, 70)
+    sb.add_symbol("Device:C", "C6", "100nF", 380, 70,
+                  footprint="Capacitor_SMD:C_0805_2012Metric",
+                  ref_offset=(4.5, -2.0), val_offset=(4.5, 2.0), pins=["1", "2"])
+    sb.add_power_symbol("+5V", 380.0, 63.0)
+    sb.add_wire(380.0, 66.19, 380.0, 63.0)
+    sb.add_power_symbol("GND", 380.0, 78.0)
+    sb.add_wire(380.0, 73.81, 380.0, 78.0)
 
-    # -----------------------------------------------------------------
-    # BLOCK 4: USB WI-FI PORT & USER INTERFACE
-    # -----------------------------------------------------------------
-    # J7: USB-A Female (center at 165, 130)
-    # Pins: Pin 1 at (159.92, 130.0), Pin 2 at (159.92, 132.54), Pin 3 at (159.92, 135.08), Pin 4 at (159.92, 137.62)
-    sb.add_symbol("Connector_Generic:Conn_01x04", "J7", "USB_WIFI_PORT", 165, 130, footprint="Connector_USB:USB_A_Molex_67643_Horizontal", pins=["1","2","3","4"])
-    sb.add_wire(159.92, 130.0, 150.0, 130.0)
-    sb.add_symbol("power:+5V", "#PWR4_USB", "+5V", 150.0, 127.0, pins=["1"])
-    sb.add_wire(150.0, 130.0, 150.0, 127.0)
-    sb.add_label("+5V_SYS", 146.0, 130.0)
 
-    sb.add_wire(159.92, 132.54, 150.0, 132.54)
-    sb.add_label("USB_DM", 150.0, 132.54)
+    # =========================================================================
+    # ZONE 5: SMARTSENS SC3336 3MP CAMERA MIPI CSI-2 INTERFACE
+    # X: 205 -> 295, Y: 135 -> 282
+    # =========================================================================
+    sb.add_box(205, 135, 295, 282)
+    sb.add_text("SECTION 5: SC3336 CAMERA MIPI CSI-2", 210, 142, size=1.6)
+    sb.add_text("15-Pin 0.5mm FPC (2-Lane MIPI + I2C)", 210, 148, size=1.1, bold=False)
 
-    sb.add_wire(159.92, 135.08, 150.0, 135.08)
-    sb.add_label("USB_DP", 150.0, 135.08)
+    # J5: Conn_01x15 at (265, 165)
+    # Pin i at (259.92, 165.0 + (i-1)*2.54)
+    sb.add_symbol("Connector_Generic:Conn_01x15", "J5", "SC3336_MIPI_FPC", 265, 165,
+                  footprint="Connector_FFC-FPC:Hirose_FH12-15S-0.5SH_1x15-1MP_P0.50mm_Horizontal",
+                  ref_offset=(0, -4.5), val_offset=(0, 41.0), pins=[str(i) for i in range(1, 16)])
 
-    sb.add_wire(159.92, 137.62, 150.0, 137.62)
-    sb.add_symbol("power:GND", "#PWR4_USB_GND", "GND", 150.0, 140.0, pins=["1"])
-    sb.add_wire(150.0, 137.62, 150.0, 140.0)
-
-    # C9: 100nF on USB VBUS (center at 178, 130)
-    sb.add_symbol("Device:C", "C9", "100nF", 178, 130, footprint="Capacitor_SMD:C_0805_2012Metric", pins=["1","2"])
-    sb.add_wire(178.0, 126.19, 178.0, 123.0)
-    sb.add_symbol("power:+5V", "#PWR4_C9", "+5V", 178.0, 123.0, pins=["1"])
-    sb.add_symbol("power:GND", "#PWR4_C9_GND", "GND", 178.0, 136.0, pins=["1"])
-    sb.add_wire(178.0, 133.81, 178.0, 136.0)
-
-    # SW1: Pushbutton (center at 165, 160)
-    # Pin 1: (159.92, 160.0) | Pin 2: (170.08, 160.0)
-    sb.add_symbol("Switch:SW_Push", "SW1", "MODE_SW", 165, 160, footprint="Button_Switch_SMD:SW_Push_1P1T_NO_6x6mm_H9.5mm", pins=["1","2"])
-    sb.add_wire(159.92, 160.0, 150.0, 160.0)
-    sb.add_label("SW_SENSE", 150.0, 160.0)
-
-    sb.add_wire(170.08, 160.0, 175.0, 160.0)
-    sb.add_symbol("power:GND", "#PWR4_SW", "GND", 175.0, 163.0, pins=["1"])
-    sb.add_wire(175.0, 160.0, 175.0, 163.0)
-
-    # R2: 10k Pull-Up (center at 145, 160)
-    sb.add_symbol("Device:R", "R2", "10k", 145, 160, footprint="Resistor_SMD:R_0805_2012Metric", pins=["1","2"])
-    sb.add_wire(145.0, 156.19, 145.0, 153.0)
-    sb.add_symbol("power:+3V3", "#PWR4_R2", "+3V3", 145.0, 153.0, pins=["1"])
-    sb.add_wire(145.0, 163.81, 145.0, 160.0)
-    sb.add_wire(145.0, 160.0, 150.0, 160.0)
-    sb.add_junction(150.0, 160.0)
-
-    # D2: Status LED (center at 205, 160) & R3 (center at 190, 160)
-    # R3: Pin 1: (190, 156.19), Pin 2: (190, 163.81)
-    sb.add_symbol("Device:R", "R3", "470R", 190, 160, footprint="Resistor_SMD:R_0805_2012Metric", pins=["1","2"])
-    sb.add_wire(190.0, 156.19, 185.0, 156.19)
-    sb.add_label("STAT_LED", 185.0, 156.19)
-
-    # D2: Pin 1: (205, 156.19), Pin 2: (205, 163.81)
-    sb.add_symbol("Device:LED", "D2", "STAT_LED_GRN", 205, 160, footprint="LED_SMD:LED_0805_2012Metric", pins=["1","2"])
-    sb.add_wire(190.0, 163.81, 205.0, 156.19)
-    sb.add_symbol("power:GND", "#PWR4_D2", "GND", 205.0, 167.0, pins=["1"])
-    sb.add_wire(205.0, 163.81, 205.0, 167.0)
-
-    # -----------------------------------------------------------------
-    # BLOCK 5: SC3336 CAMERA MIPI CSI-2 15-PIN FPC
-    # -----------------------------------------------------------------
-    # J5: 15-Pin 0.5mm FPC Connector (center at 255, 60)
-    # Pins: Pin i at (249.92, 60.0 + (i-1)*2.54)
-    sb.add_symbol("Connector_Generic:Conn_01x15", "J5", "SC3336_MIPI_FPC", 255, 60, footprint="Connector_FFC-FPC:Hirose_FH12-15S-0.5SH_1x15-1MP_P0.50mm_Horizontal", pins=[str(i) for i in range(1,16)])
-    cam_schedule = [
+    cam_signals = [
         ("1",  "GND"),
         ("2",  "MIPI_D0_N"),
         ("3",  "MIPI_D0_P"),
@@ -364,29 +510,51 @@ def generate():
         ("14", "I2C3_SDA"),
         ("15", "+3V3")
     ]
-    for p_num, p_net in cam_schedule:
+    for p_num, p_net in cam_signals:
         idx = int(p_num) - 1
-        p_y = 60.0 + idx * 2.54
-        sb.add_wire(249.92, p_y, 240.0, p_y)
+        p_y = 165.0 + idx * 2.54
+        sb.add_wire(259.92, p_y, 220.0, p_y)
         if p_net == "GND":
-            sb.add_symbol("power:GND", f"#PWR5_{p_num}", "GND", 240.0, p_y+2.0, pins=["1"])
-            sb.add_wire(240.0, p_y, 240.0, p_y+2.0)
+            sb.add_power_symbol("GND", 220.0, p_y)
         elif p_net == "+3V3":
-            sb.add_symbol("power:+3V3", f"#PWR5_{p_num}", "+3V3", 240.0, p_y-2.0, pins=["1"])
-            sb.add_wire(240.0, p_y, 240.0, p_y-2.0)
-            sb.add_label("+3V3", 235.0, p_y)
+            sb.add_power_symbol("+3V3", 220.0, p_y)
+            sb.add_label("+3V3", 213.0, p_y)
         else:
-            sb.add_label(p_net, 240.0, p_y)
+            sb.add_label(p_net, 220.0, p_y)
 
-    # C8: 100nF on Camera +3V3 (center at 270, 75)
-    sb.add_symbol("Device:C", "C8", "100nF", 270, 75, footprint="Capacitor_SMD:C_0805_2012Metric", pins=["1","2"])
-    sb.add_wire(270.0, 71.19, 270.0, 68.0)
-    sb.add_symbol("power:+3V3", "#PWR5_C8", "+3V3", 270.0, 68.0, pins=["1"])
-    sb.add_symbol("power:GND", "#PWR5_C8_GND", "GND", 270.0, 81.0, pins=["1"])
-    sb.add_wire(270.0, 78.81, 270.0, 81.0)
+    # C8: 100nF on Camera +3V3 at (280, 205)
+    sb.add_symbol("Device:C", "C8", "100nF", 280, 205,
+                  footprint="Capacitor_SMD:C_0805_2012Metric",
+                  ref_offset=(4.5, -2.0), val_offset=(4.5, 2.0), pins=["1", "2"])
+    sb.add_power_symbol("+3V3", 280.0, 198.0)
+    sb.add_wire(280.0, 201.19, 280.0, 198.0)
+    sb.add_power_symbol("GND", 280.0, 213.0)
+    sb.add_wire(280.0, 208.81, 280.0, 213.0)
 
-    # Export Schematic
+
+    # =========================================================================
+    # ZONE 6: TITLE BLOCK AREA (RESERVED)
+    # X: 300 -> 405, Y: 220 -> 285
+    # The title block is rendered automatically by KiCad eeschema inside this zone!
+    # We add an architectural note box right above it:
+    # =========================================================================
+    sb.add_box(305, 135, 405, 215)
+    sb.add_text("DASHCAM PROTOTYPE ARCHITECTURE SUMMARY", 310, 142, size=1.5)
+    notes = [
+        "- SoC: Rockchip RV1103 (Cortex-A7 @ 1.2GHz + 0.5TOPS NPU)",
+        "- Sensor: SmartSens SC3336 3MP CMOS (2304x1296 @ 30fps)",
+        "- Video: Hardware H.264/H.265 encoder via RTSP streaming",
+        "- Power Input: 12V-24V Car Accessory Socket via LM2596 Buck",
+        "- UPS Buffer: IP5306 + 3.7V 1000mAh LiPo (Safe shutdown)",
+        "- Connectivity: RTL8188EUS 2.4GHz 802.11b/g/n USB Wi-Fi",
+        "- PCB Spec: 2-Layer FR4, 1.6mm thickness, 1oz copper",
+        "- Form Factor: 65.0 x 42.0 mm (Matching Luckfox Pico Mini B)"
+    ]
+    for i, n in enumerate(notes):
+        sb.add_text(n, 310, 150 + i * 7.5, size=1.05, bold=False)
+
+    # Export
     sb.export_schematic("carrier_board.kicad_sch")
 
 if __name__ == "__main__":
-    generate()
+    build()

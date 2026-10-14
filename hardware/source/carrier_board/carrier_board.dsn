@@ -1,0 +1,333 @@
+(pcb C:\Users\souvk\Downloads\Dashcam_project\hardware\source\carrier_board\carrier_board.dsn
+  (parser
+    (string_quote ")
+    (space_in_quoted_tokens on)
+    (host_cad "KiCad's Pcbnew")
+    (host_version "10.0.7")
+  )
+  (resolution um 10)
+  (unit um)
+  (structure
+    (layer F.Cu
+      (type signal)
+      (property
+        (index 0)
+      )
+    )
+    (layer B.Cu
+      (type signal)
+      (property
+        (index 1)
+      )
+    )
+    (boundary
+      (path pcb 0  162664 -80002.1  162989 -80044  163305 -80128.2  163608 -80253.1
+            163892 -80416.7  164152 -80616  164384 -80847.7  164583 -81107.7
+            164747 -81391.6  164872 -81694.5  164956 -82011.2  164998 -82336.2
+            165000 -82500  165000 -119500  164998 -119664  164956 -119989
+            164872 -120305  164747 -120608  164583 -120892  164384 -121152
+            164152 -121384  163892 -121583  163608 -121747  163305 -121872
+            162989 -121956  162664 -121998  162500 -122000  102500 -122000
+            102336 -121998  102011 -121956  101695 -121872  101392 -121747
+            101108 -121583  100848 -121384  100616 -121152  100417 -120892
+            100253 -120608  100128 -120305  100044 -119989  100002 -119664
+            100000 -119500  100000 -82500  100002 -82336.2  100044 -82011.2
+            100128 -81694.5  100253 -81391.6  100417 -81107.7  100616 -80847.7
+            100848 -80616  101108 -80416.7  101392 -80253.1  101695 -80128.2
+            102011 -80044  102336 -80002.1  102500 -80000  162500 -80000
+            162664 -80002.1)
+    )
+    (plane GND (polygon B.Cu 0  100000 -80000  165000 -80000  165000 -122000  100000 -122000
+            100000 -80000))
+    (via "Via[0-1]_600:300_um")
+    (rule
+      (width 200)
+      (clearance 200)
+      (clearance 50 (type smd_smd))
+    )
+  )
+  (placement
+    (component MountingHole:MountingHole_2.7mm_M2.5_Pad
+      (place REF** 103500 -83500 front 0)
+      (place REF**_1 161500 -83500 front 0)
+      (place REF**_2 103500 -118500 front 0)
+      (place REF**_3 161500 -118500 front 0)
+    )
+    (component "TerminalBlock:TerminalBlock_bornier-2_P5.08mm"
+      (place J1 107500 -88500 front 0 (PN 12V_IN))
+    )
+    (component Diode_SMD:D_SMB
+      (place D1 115000 -88500 front 0 (PN SMBJ5.0A))
+    )
+    (component Capacitor_THT:CP_Radial_D8.0mm_P3.50mm
+      (place C1 107500 -96500 front 0 (PN 470uF))
+      (place C2 115000 -101500 front 0 (PN 470uF))
+    )
+    (component Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical
+      (place U1 107500 -106000 front 0 (PN LM2596_BUCK))
+      (place U2 115000 -95000 front 0 (PN IP5306_BMS))
+    )
+    (component Capacitor_SMD:C_0805_2012Metric
+      (place C3 115000 -107500 front 0 (PN 100nF))
+      (place C5 115000 -115500 front 0 (PN 100nF))
+      (place R1 120000 -118000 front 0 (PN 100R))
+      (place C4 125000 -118000 front 0 (PN 100nF))
+      (place C7 121000 -93000 front 0 (PN 100nF))
+      (place C6 142500 -93000 front 0 (PN 100nF))
+      (place C8 140000 -84800 front 0 (PN 100nF))
+      (place C9 148000 -108000 front 0 (PN 100nF))
+      (place R2 149000 -93000 front 0 (PN 10k))
+      (place R3 156000 -87500 front 0 (PN 470R))
+      (place D2 159500 -87500 front 0 (PN STAT_LED))
+    )
+    (component "Connector_JST:JST_PH_S2B-PH-K_1x02_P2.00mm_Horizontal"
+      (place J2 107500 -115500 front 0 (PN LIPO_BAT))
+    )
+    (component Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical
+      (place J3 124000 -102000 front 0 (PN LUCKFOX_J1))
+      (place J4 139240 -102000 front 0 (PN LUCKFOX_J2))
+    )
+    (component "Connector_FFC-FPC:Hirose_FH12-15S-0.5SH_1x15-1MP_P0.50mm_Horizontal"
+      (place J5 131500 -84800 front 0 (PN SC3336_FPC))
+    )
+    (component Connector_USB:USB_A_Molex_67643_Horizontal
+      (place J7 157000 -108000 front 90 (PN USB_WIFI))
+    )
+    (component Button_Switch_SMD:SW_Push_1P1T_NO_6x6mm_H9.5mm
+      (place SW1 149000 -87500 front 0 (PN PWR_BTN))
+    )
+  )
+  (library
+    (image MountingHole:MountingHole_2.7mm_M2.5_Pad
+      (pin Round[A]Pad_4500.000000_um 1 0 0)
+    )
+    (image "TerminalBlock:TerminalBlock_bornier-2_P5.08mm"
+      (pin Rect[A]Pad_2500.000000x2500.000000_um 1 -2540 0)
+      (pin Round[A]Pad_2500.000000_um 2 2540 0)
+    )
+    (image Diode_SMD:D_SMB
+      (pin Rect[T]Pad_2200.000000x2100.000000_um 1 -2150 0)
+      (pin Rect[T]Pad_2200.000000x2100.000000_um 2 2150 0)
+    )
+    (image Capacitor_THT:CP_Radial_D8.0mm_P3.50mm
+      (pin Rect[A]Pad_1800.000000x1800.000000_um 1 -1750 0)
+      (pin Round[A]Pad_1800.000000_um 2 1750 0)
+    )
+    (image Connector_PinHeader_2.54mm:PinHeader_1x04_P2.54mm_Vertical
+      (pin Rect[A]Pad_1700.000000x1700.000000_um 1 0 3810)
+      (pin Round[A]Pad_1700.000000_um 2 0 1270)
+      (pin Round[A]Pad_1700.000000_um 3 0 -1270)
+      (pin Round[A]Pad_1700.000000_um 4 0 -3810)
+    )
+    (image Capacitor_SMD:C_0805_2012Metric
+      (pin Rect[T]Pad_1000.000000x1300.000000_um 1 -950 0)
+      (pin Rect[T]Pad_1000.000000x1300.000000_um 2 950 0)
+    )
+    (image "Connector_JST:JST_PH_S2B-PH-K_1x02_P2.00mm_Horizontal"
+      (pin Rect[A]Pad_1600.000000x1600.000000_um 1 -1000 0)
+      (pin Round[A]Pad_1600.000000_um 2 1000 0)
+    )
+    (image Connector_PinSocket_2.54mm:PinSocket_1x08_P2.54mm_Vertical
+      (pin Rect[A]Pad_1700.000000x1700.000000_um 1 0 8890)
+      (pin Round[A]Pad_1700.000000_um 2 0 6350)
+      (pin Round[A]Pad_1700.000000_um 3 0 3810)
+      (pin Round[A]Pad_1700.000000_um 4 0 1270)
+      (pin Round[A]Pad_1700.000000_um 5 0 -1270)
+      (pin Round[A]Pad_1700.000000_um 6 0 -3810)
+      (pin Round[A]Pad_1700.000000_um 7 0 -6350)
+      (pin Round[A]Pad_1700.000000_um 8 0 -8890)
+    )
+    (image "Connector_FFC-FPC:Hirose_FH12-15S-0.5SH_1x15-1MP_P0.50mm_Horizontal"
+      (pin Rect[T]Pad_300.000000x1200.000000_um 1 -3500 1250)
+      (pin Rect[T]Pad_300.000000x1200.000000_um 2 -3000 1250)
+      (pin Rect[T]Pad_300.000000x1200.000000_um 3 -2500 1250)
+      (pin Rect[T]Pad_300.000000x1200.000000_um 4 -2000 1250)
+      (pin Rect[T]Pad_300.000000x1200.000000_um 5 -1500 1250)
+      (pin Rect[T]Pad_300.000000x1200.000000_um 6 -1000 1250)
+      (pin Rect[T]Pad_300.000000x1200.000000_um 7 -500 1250)
+      (pin Rect[T]Pad_300.000000x1200.000000_um 8 0 1250)
+      (pin Rect[T]Pad_300.000000x1200.000000_um 9 500 1250)
+      (pin Rect[T]Pad_300.000000x1200.000000_um 10 1000 1250)
+      (pin Rect[T]Pad_300.000000x1200.000000_um 11 1500 1250)
+      (pin Rect[T]Pad_300.000000x1200.000000_um 12 2000 1250)
+      (pin Rect[T]Pad_300.000000x1200.000000_um 13 2500 1250)
+      (pin Rect[T]Pad_300.000000x1200.000000_um 14 3000 1250)
+      (pin Rect[T]Pad_300.000000x1200.000000_um 15 3500 1250)
+      (pin Rect[T]Pad_1200.000000x1800.000000_um MP1 -4500 -500)
+      (pin Rect[T]Pad_1200.000000x1800.000000_um MP2 4500 -500)
+    )
+    (image Connector_USB:USB_A_Molex_67643_Horizontal
+      (pin Rect[A]Pad_1600.000000x1600.000000_um 1 -3500 1000)
+      (pin Round[A]Pad_1600.000000_um 2 -1000 1000)
+      (pin Round[A]Pad_1600.000000_um 3 1000 1000)
+      (pin Round[A]Pad_1600.000000_um 4 3500 1000)
+      (pin Round[A]Pad_3000.000000_um SH -5700 -2000)
+      (pin Round[A]Pad_3000.000000_um SH@1 5700 -2000)
+    )
+    (image Button_Switch_SMD:SW_Push_1P1T_NO_6x6mm_H9.5mm
+      (pin Rect[T]Pad_1800.000000x1400.000000_um 1 -3250 0)
+      (pin Rect[T]Pad_1800.000000x1400.000000_um 2 3250 0)
+    )
+    (padstack Round[A]Pad_1600.000000_um
+      (shape (circle F.Cu 1600))
+      (shape (circle B.Cu 1600))
+      (attach off)
+    )
+    (padstack Round[A]Pad_1700.000000_um
+      (shape (circle F.Cu 1700))
+      (shape (circle B.Cu 1700))
+      (attach off)
+    )
+    (padstack Round[A]Pad_1800.000000_um
+      (shape (circle F.Cu 1800))
+      (shape (circle B.Cu 1800))
+      (attach off)
+    )
+    (padstack Round[A]Pad_2500.000000_um
+      (shape (circle F.Cu 2500))
+      (shape (circle B.Cu 2500))
+      (attach off)
+    )
+    (padstack Round[A]Pad_3000.000000_um
+      (shape (circle F.Cu 3000))
+      (shape (circle B.Cu 3000))
+      (attach off)
+    )
+    (padstack Round[A]Pad_4500.000000_um
+      (shape (circle F.Cu 4500))
+      (shape (circle B.Cu 4500))
+      (attach off)
+    )
+    (padstack Rect[T]Pad_2200.000000x2100.000000_um
+      (shape (rect F.Cu -1100 -1050 1100 1050))
+      (attach off)
+    )
+    (padstack Rect[A]Pad_2500.000000x2500.000000_um
+      (shape (rect F.Cu -1250 -1250 1250 1250))
+      (shape (rect B.Cu -1250 -1250 1250 1250))
+      (attach off)
+    )
+    (padstack Rect[T]Pad_300.000000x1200.000000_um
+      (shape (rect F.Cu -150 -600 150 600))
+      (attach off)
+    )
+    (padstack Rect[T]Pad_1000.000000x1300.000000_um
+      (shape (rect F.Cu -500 -650 500 650))
+      (attach off)
+    )
+    (padstack Rect[T]Pad_1200.000000x1800.000000_um
+      (shape (rect F.Cu -600 -900 600 900))
+      (attach off)
+    )
+    (padstack Rect[A]Pad_1600.000000x1600.000000_um
+      (shape (rect F.Cu -800 -800 800 800))
+      (shape (rect B.Cu -800 -800 800 800))
+      (attach off)
+    )
+    (padstack Rect[A]Pad_1700.000000x1700.000000_um
+      (shape (rect F.Cu -850 -850 850 850))
+      (shape (rect B.Cu -850 -850 850 850))
+      (attach off)
+    )
+    (padstack Rect[T]Pad_1800.000000x1400.000000_um
+      (shape (rect F.Cu -900 -700 900 700))
+      (attach off)
+    )
+    (padstack Rect[A]Pad_1800.000000x1800.000000_um
+      (shape (rect F.Cu -900 -900 900 900))
+      (shape (rect B.Cu -900 -900 900 900))
+      (attach off)
+    )
+    (padstack "Via[0-1]_600:300_um"
+      (shape (circle F.Cu 600))
+      (shape (circle B.Cu 600))
+      (attach off)
+    )
+  )
+  (network
+    (net GND
+      (pins REF**-1 REF**_1-1 REF**_2-1 REF**_3-1 J1-2 D1-2 C1-2 U1-2 U1-4 C2-2 C3-2
+        J2-2 C5-2 U2-4 R1-2 C4-2 J3-3 J3-7 C7-2 J4-2 J4-8 C6-2 J5-1 J5-4 J5-7 J5-10
+        J5-MP1 J5-MP2 C8-2 J7-4 J7-SH J7-SH@1 C9-2 SW1-2 D2-2)
+    )
+    (net +12V
+      (pins J1-1 D1-1 C1-1 U1-1)
+    )
+    (net +5V_PRE
+      (pins U1-3 C2-1 C3-1 U2-1)
+    )
+    (net VBAT
+      (pins J2-1 C5-1 U2-2)
+    )
+    (net +5V_SYS
+      (pins U2-3 R1-1 C4-1 J4-1 C6-1 J7-1 C9-1)
+    )
+    (net +3V3
+      (pins J3-4 C7-1 J5-15 C8-1 R2-1)
+    )
+    (net MIPI_D0_P
+      (pins J5-3)
+    )
+    (net MIPI_D0_N
+      (pins J5-2)
+    )
+    (net MIPI_CLK_P
+      (pins J5-6)
+    )
+    (net MIPI_CLK_N
+      (pins J5-5)
+    )
+    (net MIPI_D1_P
+      (pins J5-9)
+    )
+    (net MIPI_D1_N
+      (pins J5-8)
+    )
+    (net I2C3_SCL
+      (pins J3-5 J5-13)
+    )
+    (net I2C3_SDA
+      (pins J3-6 J5-14)
+    )
+    (net CAM_RSTn
+      (pins J4-5 J5-11)
+    )
+    (net CAM_PDN
+      (pins J4-6 J5-12)
+    )
+    (net USB_DP
+      (pins J4-4 J7-3)
+    )
+    (net USB_DM
+      (pins J4-3 J7-2)
+    )
+    (net STAT_LED
+      (pins J3-8 R3-1)
+    )
+    (net SW_SENSE
+      (pins J4-7 SW1-1 R2-2)
+    )
+    (net UART2_TX
+      (pins J3-1)
+    )
+    (net UART2_RX
+      (pins J3-2)
+    )
+    (net "Net-(D2-A)"
+      (pins R3-2 D2-1)
+    )
+    (class kicad_default +12V +3V3 +5V_PRE +5V_SYS CAM_PDN CAM_RSTn GND I2C3_SCL
+      I2C3_SDA MIPI_CLK_N MIPI_CLK_P MIPI_D0_N MIPI_D0_P MIPI_D1_N MIPI_D1_P
+      "Net-(D2-A)" STAT_LED SW_SENSE UART2_RX UART2_TX USB_DM USB_DP VBAT
+      (circuit
+        (use_via "Via[0-1]_600:300_um")
+      )
+      (rule
+        (width 200)
+        (clearance 200)
+      )
+    )
+  )
+  (wiring
+  )
+)
